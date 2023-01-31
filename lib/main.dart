@@ -16,10 +16,6 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Youtube App',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        ),
         home: MyHomePage(),
       ),
     );
@@ -70,11 +66,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
     return LayoutBuilder(builder: (context, constraints) {
       return Scaffold(
+        backgroundColor: Color.fromARGB(255, 17, 17, 17),
         body: Row(
           children: [
             SafeArea(
               child: NavigationRail(
+                unselectedLabelTextStyle: TextStyle(color: Colors.white),
+                unselectedIconTheme: IconThemeData(color: Colors.white),
                 extended: constraints.maxWidth >= 600,
+                backgroundColor: Color.fromARGB(255, 15, 15, 15),
                 destinations: [
                   NavigationRailDestination(
                     icon: Icon(Icons.home),
@@ -95,7 +95,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             Expanded(
               child: Container(
-                color: Theme.of(context).colorScheme.primaryContainer,
+                color: Color.fromARGB(255, 20, 20, 20),
                 child: page,
               ),
             ),
@@ -119,6 +119,19 @@ class GeneratorPage extends StatelessWidget {
       icon = Icons.favorite_border;
     }
 
+    var buttonStyle = ButtonStyle(
+      backgroundColor: MaterialStateProperty.resolveWith<Color?>(
+        (Set<MaterialState> states) {
+          return Color.fromARGB(255, 25, 25, 25);
+        },
+      ),
+      iconColor: MaterialStateProperty.resolveWith<Color?>(
+        (Set<MaterialState> states) {
+          return Colors.pink;
+        },
+      ),
+    );
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -129,6 +142,7 @@ class GeneratorPage extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               ElevatedButton.icon(
+                style: buttonStyle,
                 onPressed: () {
                   appState.toggleFavorite();
                 },
@@ -137,6 +151,7 @@ class GeneratorPage extends StatelessWidget {
               ),
               SizedBox(width: 10),
               ElevatedButton(
+                style: buttonStyle,
                 onPressed: () {
                   appState.getNext();
                 },
@@ -162,11 +177,11 @@ class BigCard extends StatelessWidget {
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
     var style = theme.textTheme.displayMedium!.copyWith(
-      color: theme.colorScheme.onPrimary,
+      color: Colors.white,
     );
 
     return Card(
-        color: theme.colorScheme.primary,
+        color: Color.fromARGB(255, 25, 25, 25),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Text(
@@ -182,10 +197,14 @@ class FavoritesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<MyAppState>();
+    var textStyle = TextStyle(color: Colors.white);
 
     if (appState.favorites.isEmpty) {
       return Center(
-        child: Text('No favorites yet.'),
+        child: Text(
+          'No favorites yet.',
+          style: textStyle,
+        ),
       );
     }
 
@@ -193,11 +212,15 @@ class FavoritesPage extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.all(20),
-          child: Text('You have '
-              '${appState.favorites.length} favorites:'),
+          child: Text(
+            'You have ${appState.favorites.length} favorites:',
+            style: textStyle,
+          ),
         ),
         for (var pair in appState.favorites)
           ListTile(
+            iconColor: Colors.pink,
+            textColor: Colors.white,
             leading: Icon(Icons.favorite),
             title: Text(pair.asLowerCase),
           ),
