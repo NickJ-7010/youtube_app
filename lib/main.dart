@@ -12,17 +12,17 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => MyAppState(),
+      create: (context) => AppState(),
       child: MaterialApp(
         title: 'Youtube App',
         debugShowCheckedModeBanner: false,
-        home: MyHomePage(),
+        home: TopNavBar(),
       ),
     );
   }
 }
 
-class MyAppState extends ChangeNotifier {
+class AppState extends ChangeNotifier {
   var current = WordPair.random();
 
   void getNext() {
@@ -40,76 +40,330 @@ class MyAppState extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  var subApp = 0;
+
+  void setSubApp(int newSubApp) {
+    subApp = newSubApp;
+    notifyListeners();
+  }
 }
 
-class MyHomePage extends StatefulWidget {
+class TopNavBar extends StatelessWidget {
+  const TopNavBar({Key? key}) : super(key: key);
+
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  Widget build(BuildContext context) {
+    var appState = context.watch<AppState>();
+
+    Widget appPage;
+    String appTitle;
+
+    switch (appState.subApp) {
+      case 0:
+        appPage = YoutubeBaseApp(restorationId: '0');
+        appTitle = 'Youtube';
+        break;
+      case 1:
+        appPage = YoutubeMusicBaseApp(restorationId: '0');
+        appTitle = 'Youtube Music';
+        break;
+      default:
+        throw UnimplementedError('no widget for current subApp');
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Color.fromARGB(255, 15, 15, 15),
+        shadowColor: Colors.transparent,
+        title: Text(appTitle),
+      ),
+      body: appPage,
+      drawer: Drawer(
+          backgroundColor: Colors.black,
+          child: ListView(
+            children: [
+              ListTile(
+                iconColor: Colors.grey,
+                textColor: Colors.white,
+                hoverColor: Colors.white10,
+                title: Text('Youtube'),
+                leading: Icon(Icons.play_circle),
+                onTap: () {
+                  Navigator.pop(context);
+                  appState.setSubApp(0);
+                },
+              ),
+              ListTile(
+                iconColor: Colors.grey,
+                textColor: Colors.white,
+                hoverColor: Colors.white10,
+                title: Text('Youtube Music'),
+                leading: Icon(Icons.album),
+                onTap: () {
+                  Navigator.pop(context);
+                  appState.setSubApp(1);
+                },
+              ),
+            ],
+          )),
+    );
+  }
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  var selectedIndex = 0;
+class YoutubeBaseApp extends StatefulWidget {
+  const YoutubeBaseApp({
+    Key? key,
+    required this.restorationId,
+  }) : super(key: key);
+
+  final String restorationId;
+
+  @override
+  State<YoutubeBaseApp> createState() => _YoutubeBaseAppState();
+}
+
+class _YoutubeBaseAppState extends State<YoutubeBaseApp> with RestorationMixin {
+  final RestorableInt tabIndex = RestorableInt(0);
+
+  @override
+  String get restorationId => widget.restorationId;
+
+  @override
+  void restoreState(RestorationBucket? oldBucket, bool initialRestore) {
+    registerForRestoration(tabIndex, 'bottom_navigation_tab_index');
+  }
+
+  @override
+  void dispose() {
+    tabIndex.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    var bottomNavigationBarItems = <BottomNavigationBarItem>[
+      BottomNavigationBarItem(
+        icon: Icon(Icons.home_outlined),
+        activeIcon: Icon(Icons.home),
+        label: 'Home',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.app_shortcut_outlined),
+        activeIcon: Icon(Icons.app_shortcut),
+        label: 'Shorts',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.add_circle_outline),
+        activeIcon: Icon(Icons.add_circle),
+        label: 'Create',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.subscriptions_outlined),
+        activeIcon: Icon(Icons.subscriptions),
+        label: 'Subscriptions',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.video_library_outlined),
+        activeIcon: Icon(Icons.video_library),
+        label: 'Library',
+      ),
+    ];
+
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            bottom:
+                BorderSide(width: 1.0, color: Color.fromARGB(255, 50, 50, 50)),
+          ),
+        ),
+        child: YoutubeTabView(
+          // Adding [UniqueKey] to make sure the widget rebuilds when transitioning.
+          key: UniqueKey(),
+          item: tabIndex.value,
+        ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        showUnselectedLabels: true,
+        items: bottomNavigationBarItems,
+        currentIndex: tabIndex.value,
+        type: BottomNavigationBarType.fixed,
+        onTap: (index) {
+          setState(() {
+            tabIndex.value = index;
+          });
+        },
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white,
+        backgroundColor: Color.fromARGB(255, 15, 15, 15),
+      ),
+    );
+  }
+}
+
+class YoutubeTabView extends StatelessWidget {
+  const YoutubeTabView({
+    Key? key,
+    required this.item,
+  }) : super(key: key);
+
+  final int item;
 
   @override
   Widget build(BuildContext context) {
     Widget page;
-    switch (selectedIndex) {
+    switch (item) {
       case 0:
         page = GeneratorPage();
         break;
       case 1:
         page = FavoritesPage();
         break;
+      case 2:
+        page = GeneratorPage();
+        break;
+      case 3:
+        page = FavoritesPage();
+        break;
+      case 4:
+        page = GeneratorPage();
+        break;
       default:
-        throw UnimplementedError('no widget for $selectedIndex');
+        throw UnimplementedError('no widget for $item');
     }
 
-    return LayoutBuilder(builder: (context, constraints) {
-      return Scaffold(
-        backgroundColor: Color.fromARGB(255, 17, 17, 17),
-        body: Row(
-          children: [
-            SafeArea(
-              child: NavigationRail(
-                unselectedLabelTextStyle: TextStyle(color: Colors.white),
-                unselectedIconTheme: IconThemeData(color: Colors.white),
-                extended: constraints.maxWidth >= 600,
-                backgroundColor: Color.fromARGB(255, 15, 15, 15),
-                destinations: [
-                  NavigationRailDestination(
-                    icon: Icon(Icons.home),
-                    label: Text('Home'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.favorite),
-                    label: Text('Favorites'),
-                  ),
-                ],
-                selectedIndex: selectedIndex,
-                onDestinationSelected: (value) {
-                  setState(() {
-                    selectedIndex = value;
-                  });
-                },
-              ),
-            ),
-            Expanded(
-              child: Container(
-                color: Color.fromARGB(255, 20, 20, 20),
-                child: page,
-              ),
-            ),
-          ],
+    return Container(
+      color: Color.fromARGB(255, 15, 15, 15),
+      child: page,
+    );
+  }
+}
+
+class YoutubeMusicBaseApp extends StatefulWidget {
+  const YoutubeMusicBaseApp({
+    Key? key,
+    required this.restorationId,
+  }) : super(key: key);
+
+  final String restorationId;
+
+  @override
+  State<YoutubeMusicBaseApp> createState() => _YoutubeMusicBaseAppState();
+}
+
+class _YoutubeMusicBaseAppState extends State<YoutubeMusicBaseApp>
+    with RestorationMixin {
+  final RestorableInt tabIndex = RestorableInt(0);
+
+  @override
+  String get restorationId => widget.restorationId;
+
+  @override
+  void restoreState(RestorationBucket? oldBucket, bool initialRestore) {
+    registerForRestoration(tabIndex, 'bottom_navigation_tab_index');
+  }
+
+  @override
+  void dispose() {
+    tabIndex.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    var bottomNavigationBarItems = <BottomNavigationBarItem>[
+      BottomNavigationBarItem(
+        icon: Icon(Icons.home_outlined),
+        activeIcon: Icon(Icons.home),
+        label: 'Home',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.explore_outlined),
+        activeIcon: Icon(Icons.explore),
+        label: 'Explore',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.library_music_outlined),
+        activeIcon: Icon(Icons.library_music),
+        label: 'Library',
+      ),
+    ];
+
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            bottom:
+                BorderSide(width: 1.0, color: Color.fromARGB(255, 50, 50, 50)),
+          ),
         ),
-      );
-    });
+        child: YoutubeMusicTabView(
+          // Adding [UniqueKey] to make sure the widget rebuilds when transitioning.
+          key: UniqueKey(),
+          item: tabIndex.value,
+        ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        showUnselectedLabels: true,
+        items: bottomNavigationBarItems,
+        currentIndex: tabIndex.value,
+        type: BottomNavigationBarType.fixed,
+        onTap: (index) {
+          setState(() {
+            tabIndex.value = index;
+          });
+        },
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white,
+        backgroundColor: Color.fromARGB(255, 15, 15, 15),
+      ),
+    );
+  }
+}
+
+class YoutubeMusicTabView extends StatelessWidget {
+  const YoutubeMusicTabView({
+    Key? key,
+    required this.item,
+  }) : super(key: key);
+
+  final int item;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget page;
+    switch (item) {
+      case 0:
+        page = GeneratorPage();
+        break;
+      case 1:
+        page = FavoritesPage();
+        break;
+      case 2:
+        page = GeneratorPage();
+        break;
+      case 3:
+        page = FavoritesPage();
+        break;
+      case 4:
+        page = GeneratorPage();
+        break;
+      default:
+        throw UnimplementedError('no widget for $item');
+    }
+
+    return Container(
+      color: Color.fromARGB(255, 15, 15, 15),
+      child: page,
+    );
   }
 }
 
 class GeneratorPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
+    var appState = context.watch<AppState>();
     var pair = appState.current;
 
     IconData icon;
@@ -196,7 +450,7 @@ class BigCard extends StatelessWidget {
 class FavoritesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
+    var appState = context.watch<AppState>();
     var textStyle = TextStyle(color: Colors.white);
 
     if (appState.favorites.isEmpty) {
