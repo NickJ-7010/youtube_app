@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => AppState(),
-      child: MaterialApp(
+      child: const MaterialApp(
         title: 'Youtube App',
         debugShowCheckedModeBanner: false,
         home: TopNavBar(),
@@ -61,11 +61,11 @@ class TopNavBar extends StatelessWidget {
 
     switch (appState.subApp) {
       case 0:
-        appPage = YoutubeBaseApp(restorationId: '0');
+        appPage = const YoutubeBaseApp(restorationId: '0');
         appTitle = 'Youtube';
         break;
       case 1:
-        appPage = YoutubeMusicBaseApp(restorationId: '0');
+        appPage = const YoutubeMusicBaseApp(restorationId: '0');
         appTitle = 'Youtube Music';
         break;
       default:
@@ -74,7 +74,7 @@ class TopNavBar extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color.fromARGB(255, 15, 15, 15),
+        backgroundColor: const Color.fromARGB(255, 15, 15, 15),
         shadowColor: Colors.transparent,
         title: Text(appTitle),
       ),
@@ -87,8 +87,8 @@ class TopNavBar extends StatelessWidget {
                 iconColor: Colors.grey,
                 textColor: Colors.white,
                 hoverColor: Colors.white10,
-                title: Text('Youtube'),
-                leading: Icon(Icons.play_circle),
+                title: const Text('Youtube'),
+                leading: const Icon(Icons.play_circle),
                 onTap: () {
                   Navigator.pop(context);
                   appState.setSubApp(0);
@@ -98,8 +98,8 @@ class TopNavBar extends StatelessWidget {
                 iconColor: Colors.grey,
                 textColor: Colors.white,
                 hoverColor: Colors.white10,
-                title: Text('Youtube Music'),
-                leading: Icon(Icons.album),
+                title: const Text('Youtube Music'),
+                leading: const Icon(Icons.album),
                 onTap: () {
                   Navigator.pop(context);
                   appState.setSubApp(1);
@@ -143,27 +143,27 @@ class _YoutubeBaseAppState extends State<YoutubeBaseApp> with RestorationMixin {
   @override
   Widget build(BuildContext context) {
     var bottomNavigationBarItems = <BottomNavigationBarItem>[
-      BottomNavigationBarItem(
+      const BottomNavigationBarItem(
         icon: Icon(Icons.home_outlined),
         activeIcon: Icon(Icons.home),
         label: 'Home',
       ),
-      BottomNavigationBarItem(
+      const BottomNavigationBarItem(
         icon: Icon(Icons.app_shortcut_outlined),
         activeIcon: Icon(Icons.app_shortcut),
         label: 'Shorts',
       ),
-      BottomNavigationBarItem(
+      const BottomNavigationBarItem(
         icon: Icon(Icons.add_circle_outline),
         activeIcon: Icon(Icons.add_circle),
         label: 'Create',
       ),
-      BottomNavigationBarItem(
+      const BottomNavigationBarItem(
         icon: Icon(Icons.subscriptions_outlined),
         activeIcon: Icon(Icons.subscriptions),
         label: 'Subscriptions',
       ),
-      BottomNavigationBarItem(
+      const BottomNavigationBarItem(
         icon: Icon(Icons.video_library_outlined),
         activeIcon: Icon(Icons.video_library),
         label: 'Library',
@@ -172,7 +172,7 @@ class _YoutubeBaseAppState extends State<YoutubeBaseApp> with RestorationMixin {
 
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           border: Border(
             bottom:
                 BorderSide(width: 1.0, color: Color.fromARGB(255, 50, 50, 50)),
@@ -196,7 +196,7 @@ class _YoutubeBaseAppState extends State<YoutubeBaseApp> with RestorationMixin {
         },
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white,
-        backgroundColor: Color.fromARGB(255, 15, 15, 15),
+        backgroundColor: const Color.fromARGB(255, 15, 15, 15),
       ),
     );
   }
@@ -234,7 +234,7 @@ class YoutubeTabView extends StatelessWidget {
     }
 
     return Container(
-      color: Color.fromARGB(255, 15, 15, 15),
+      color: const Color.fromARGB(255, 15, 15, 15),
       child: page,
     );
   }
@@ -273,17 +273,17 @@ class _YoutubeMusicBaseAppState extends State<YoutubeMusicBaseApp>
   @override
   Widget build(BuildContext context) {
     var bottomNavigationBarItems = <BottomNavigationBarItem>[
-      BottomNavigationBarItem(
+      const BottomNavigationBarItem(
         icon: Icon(Icons.home_outlined),
         activeIcon: Icon(Icons.home),
         label: 'Home',
       ),
-      BottomNavigationBarItem(
+      const BottomNavigationBarItem(
         icon: Icon(Icons.explore_outlined),
         activeIcon: Icon(Icons.explore),
         label: 'Explore',
       ),
-      BottomNavigationBarItem(
+      const BottomNavigationBarItem(
         icon: Icon(Icons.library_music_outlined),
         activeIcon: Icon(Icons.library_music),
         label: 'Library',
@@ -292,7 +292,7 @@ class _YoutubeMusicBaseAppState extends State<YoutubeMusicBaseApp>
 
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           border: Border(
             bottom:
                 BorderSide(width: 1.0, color: Color.fromARGB(255, 50, 50, 50)),
@@ -316,7 +316,7 @@ class _YoutubeMusicBaseAppState extends State<YoutubeMusicBaseApp>
         },
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white,
-        backgroundColor: Color.fromARGB(255, 15, 15, 15),
+        backgroundColor: const Color.fromARGB(255, 15, 15, 15),
       ),
     );
   }
@@ -354,7 +354,7 @@ class YoutubeMusicTabView extends StatelessWidget {
     }
 
     return Container(
-      color: Color.fromARGB(255, 15, 15, 15),
+      color: const Color.fromARGB(255, 15, 15, 15),
       child: page,
     );
   }
@@ -376,7 +376,7 @@ class GeneratorPage extends StatelessWidget {
     var buttonStyle = ButtonStyle(
       backgroundColor: MaterialStateProperty.resolveWith<Color?>(
         (Set<MaterialState> states) {
-          return Color.fromARGB(255, 25, 25, 25);
+          return const Color.fromARGB(255, 25, 25, 25);
         },
       ),
       iconColor: MaterialStateProperty.resolveWith<Color?>(
@@ -391,7 +391,7 @@ class GeneratorPage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           BigCard(pair: pair),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -401,15 +401,15 @@ class GeneratorPage extends StatelessWidget {
                   appState.toggleFavorite();
                 },
                 icon: Icon(icon),
-                label: Text('Like'),
+                label: const Text('Like'),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               ElevatedButton(
                 style: buttonStyle,
                 onPressed: () {
                   appState.getNext();
                 },
-                child: Text('Next'),
+                child: const Text('Next'),
               ),
             ],
           ),
@@ -435,7 +435,7 @@ class BigCard extends StatelessWidget {
     );
 
     return Card(
-        color: Color.fromARGB(255, 25, 25, 25),
+        color: const Color.fromARGB(255, 25, 25, 25),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Text(
@@ -451,7 +451,7 @@ class FavoritesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<AppState>();
-    var textStyle = TextStyle(color: Colors.white);
+    var textStyle = const TextStyle(color: Colors.white);
 
     if (appState.favorites.isEmpty) {
       return Center(
@@ -475,7 +475,7 @@ class FavoritesPage extends StatelessWidget {
           ListTile(
             iconColor: Colors.pink,
             textColor: Colors.white,
-            leading: Icon(Icons.favorite),
+            leading: const Icon(Icons.favorite),
             title: Text(pair.asLowerCase),
           ),
       ],
