@@ -1,4 +1,3 @@
-import 'package:english_words/english_words.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -174,7 +173,7 @@ AppBar homeAppBar(AppState appState, BuildContext context) {
     shadowColor: Colors.transparent,
     title: RichText(
       text: TextSpan(
-        style: TextStyle(
+        style: const TextStyle(
           decoration: TextDecoration.underline,
           decorationColor: Colors.red,
           fontSize: 30,
@@ -235,7 +234,7 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       appBar: homeAppBar(appState, context),
       backgroundColor: const Color.fromARGB(255, 15, 15, 15),
-      body: Center(
+      body: const Center(
         child: Text(
           'Home Page',
           style: TextStyle(color: Colors.white),
@@ -253,7 +252,7 @@ class ShortsPage extends StatelessWidget {
     return Scaffold(
       appBar: homeAppBar(appState, context),
       backgroundColor: const Color.fromARGB(255, 15, 15, 15),
-      body: Center(
+      body: const Center(
         child: Text(
           'Shorts Page',
           style: TextStyle(color: Colors.white),
@@ -271,7 +270,7 @@ class CreatePage extends StatelessWidget {
     return Scaffold(
       appBar: homeAppBar(appState, context),
       backgroundColor: const Color.fromARGB(255, 15, 15, 15),
-      body: Center(
+      body: const Center(
         child: Text(
           'Create Page',
           style: TextStyle(color: Colors.white),
@@ -289,7 +288,7 @@ class SubscriptionsPage extends StatelessWidget {
     return Scaffold(
       appBar: homeAppBar(appState, context),
       backgroundColor: const Color.fromARGB(255, 15, 15, 15),
-      body: Center(
+      body: const Center(
         child: Text(
           'Subscriptions Page',
           style: TextStyle(color: Colors.white),
@@ -307,7 +306,7 @@ class LibraryPage extends StatelessWidget {
     return Scaffold(
       appBar: homeAppBar(appState, context),
       backgroundColor: const Color.fromARGB(255, 15, 15, 15),
-      body: Center(
+      body: const Center(
         child: Text(
           'Library Page',
           style: TextStyle(color: Colors.white),
@@ -324,9 +323,9 @@ class NotificationPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 15, 15, 15),
         shadowColor: Colors.transparent,
-        title: Text('Notifications'),
+        title: const Text('Notifications'),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios),
+          icon: const Icon(Icons.arrow_back_ios),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -353,8 +352,8 @@ class NotificationPage extends StatelessWidget {
           ),
         ],
       ),
-      body: Scaffold(
-        backgroundColor: const Color.fromARGB(255, 15, 15, 15),
+      body: const Scaffold(
+        backgroundColor: Color.fromARGB(255, 15, 15, 15),
       ),
     );
   }
@@ -369,7 +368,7 @@ class SearchPage extends StatelessWidget {
         shadowColor: Colors.transparent,
         title: TextBox(),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios),
+          icon: const Icon(Icons.arrow_back_ios),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -384,8 +383,8 @@ class SearchPage extends StatelessWidget {
           ),
         ],
       ),
-      body: Scaffold(
-        backgroundColor: const Color.fromARGB(255, 15, 15, 15),
+      body: const Scaffold(
+        backgroundColor: Color.fromARGB(255, 15, 15, 15),
       ),
     );
   }
@@ -399,21 +398,21 @@ class TextBox extends StatelessWidget {
       color: Colors.transparent,
       child: TextField(
         cursorColor: Colors.white,
-        style: TextStyle(color: Colors.white),
+        style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(1000.0),
-            borderSide: BorderSide(
+            borderSide: const BorderSide(
               width: 0,
               style: BorderStyle.none,
             ),
           ),
           hintText: 'Search',
-          hintStyle: TextStyle(color: Colors.white),
+          hintStyle: const TextStyle(color: Colors.white),
           filled: true,
           fillColor: const Color.fromARGB(255, 50, 50, 50),
           isDense: true,
-          contentPadding: EdgeInsets.all(12),
+          contentPadding: const EdgeInsets.all(12),
         ),
       ),
     );
