@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 void main() {
   runApp(const MyApp());
@@ -469,8 +470,37 @@ class NotificationPage extends StatelessWidget {
           ),
         ],
       ),
-      body: const Scaffold(
-        backgroundColor: Color.fromARGB(255, 15, 15, 15),
+      body: Scaffold(
+        backgroundColor: const Color.fromARGB(255, 15, 15, 15),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Padding(
+                padding: EdgeInsets.only(bottom: 10),
+                child: Text(
+                  'Notifications Unavailable',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              Text(
+                'Notifications cannot be enabled',
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+              Text(
+                'account linking is not currently possible',
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -502,8 +532,31 @@ class SearchPage extends StatelessWidget {
           ),
         ],
       ),
-      body: const Scaffold(
-        backgroundColor: Color.fromARGB(255, 15, 15, 15),
+      body: Scaffold(
+        backgroundColor: const Color.fromARGB(255, 15, 15, 15),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Padding(
+                padding: EdgeInsets.only(bottom: 10),
+                child: Text(
+                  'Searching Unavailable',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              Text(
+                'Search menus aren\'t currently coded',
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
