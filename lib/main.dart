@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
       child: const MaterialApp(
         title: 'Youtube App',
         debugShowCheckedModeBanner: false,
-        home: YoutubeBaseApp(restorationId: '0'),
+        home: YoutubeBaseApp(),
       ),
     );
   }
@@ -39,94 +39,182 @@ class AppState extends ChangeNotifier {
 }
 
 class YoutubeBaseApp extends StatefulWidget {
-  const YoutubeBaseApp({
-    Key? key,
-    required this.restorationId,
-  }) : super(key: key);
-
-  final String restorationId;
+  const YoutubeBaseApp({Key? key}) : super(key: key);
 
   @override
-  State<YoutubeBaseApp> createState() => _YoutubeBaseAppState();
+  State<YoutubeBaseApp> createState() => YoutubeBaseAppState();
 }
 
-class _YoutubeBaseAppState extends State<YoutubeBaseApp> with RestorationMixin {
-  final RestorableInt tabIndex = RestorableInt(0);
+class YoutubeBaseAppState extends State<YoutubeBaseApp> {
+  var activeTab = 0;
+  final tabItemKeys = {
+    0: GlobalKey<NavigatorState>(),
+    1: GlobalKey<NavigatorState>(),
+    2: GlobalKey<NavigatorState>(),
+    3: GlobalKey<NavigatorState>(),
+    4: GlobalKey<NavigatorState>(),
+  };
 
-  @override
-  String get restorationId => widget.restorationId;
-
-  @override
-  void restoreState(RestorationBucket? oldBucket, bool initialRestore) {
-    registerForRestoration(tabIndex, 'bottom_navigation_tab_index');
-  }
-
-  @override
-  void dispose() {
-    tabIndex.dispose();
-    super.dispose();
+  void setActiveTab(int tabItem) {
+    if (tabItem == activeTab) {
+      // pop to first route
+      tabItemKeys[tabItem]!.currentState!.popUntil((route) => route.isFirst);
+    } else {
+      setState(() => activeTab = tabItem);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    var bottomNavigationBarItems = <BottomNavigationBarItem>[
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.home_outlined),
-        activeIcon: Icon(Icons.home),
-        label: 'Home',
-      ),
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.app_shortcut_outlined),
-        activeIcon: Icon(Icons.app_shortcut),
-        label: 'Shorts',
-      ),
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.add_circle_outline),
-        activeIcon: Icon(Icons.add_circle),
-        label: 'Create',
-      ),
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.subscriptions_outlined),
-        activeIcon: Icon(Icons.subscriptions),
-        label: 'Subscriptions',
-      ),
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.video_library_outlined),
-        activeIcon: Icon(Icons.video_library),
-        label: 'Library',
-      ),
-    ];
-
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom:
-                BorderSide(width: 1.0, color: Color.fromARGB(255, 50, 50, 50)),
-          ),
+    return WillPopScope(
+      onWillPop: () async {
+        final isFirstRouteInCurrentTab =
+            !await tabItemKeys[activeTab]!.currentState!.maybePop();
+        if (isFirstRouteInCurrentTab) {
+          // if not on the 'main' tab
+          if (activeTab != 0) {
+            // select 'main' tab
+            setActiveTab(0);
+            // back button handled by app
+            return false;
+          }
+        }
+        // let system handle back button if we're on the first route
+        return isFirstRouteInCurrentTab;
+      },
+      child: Scaffold(
+        body: Stack(children: <Widget>[
+          offstageTabNavigator(0, HomePage()),
+          offstageTabNavigator(1, ShortsPage()),
+          offstageTabNavigator(2, CreatePage()),
+          offstageTabNavigator(3, SubscriptionsPage()),
+          offstageTabNavigator(4, LibraryPage()),
+        ]),
+        bottomNavigationBar: BottomNavigation(
+          currentTab: activeTab,
+          onSelectTab: setActiveTab,
         ),
-        child: YoutubeTabView(
-          // Adding [UniqueKey] to make sure the widget rebuilds when transitioning.
-          key: UniqueKey(),
-          item: tabIndex.value,
-        ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        showUnselectedLabels: true,
-        items: bottomNavigationBarItems,
-        currentIndex: tabIndex.value,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          setState(() {
-            tabIndex.value = index;
-          });
-        },
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white,
-        backgroundColor: const Color.fromARGB(255, 15, 15, 15),
       ),
     );
   }
+
+  Widget offstageTabNavigator(int tabItem, Widget page) {
+    return Offstage(
+      offstage: activeTab != tabItem,
+      child: TabNavigator(
+        navigatorKey: tabItemKeys[tabItem],
+        tabItem: tabItem,
+        mainPage: page,
+      ),
+    );
+  }
+
+  // Scaffold(
+  //   body: Container(
+  //     decoration: const BoxDecoration(
+  //       border: Border(
+  //         bottom:
+  //             BorderSide(width: 1.0, color: Color.fromARGB(255, 50, 50, 50)),
+  //       ),
+  //     ),
+  //     child: YoutubeTabView(
+  //       // Adding [UniqueKey] to make sure the widget rebuilds when transitioning.
+  //       key: UniqueKey(),
+  //       item: activeTab,
+  //     ),
+  //   ),
+  //   bottomNavigationBar: BottomNavigationBar(
+  //     showUnselectedLabels: true,
+  //     items: bottomNavigationBarItems,
+  //     currentIndex: activeTab,
+  //     type: BottomNavigationBarType.fixed,
+  //     onTap: (index) {
+  //       setState(() {
+  //         activeTab = index;
+  //       });
+  //     },
+  //     selectedItemColor: Colors.white,
+  //     unselectedItemColor: Colors.white,
+  //     backgroundColor: const Color.fromARGB(255, 15, 15, 15),
+  //   );
+}
+
+class BottomNavigation extends StatelessWidget {
+  const BottomNavigation(
+      {super.key, required this.currentTab, required this.onSelectTab});
+  final int currentTab;
+  final ValueChanged<int> onSelectTab;
+
+  @override
+  Widget build(BuildContext context) {
+    return Theme(
+      data: ThemeData(
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+      ),
+      child: BottomNavigationBar(
+        backgroundColor: const Color.fromARGB(255, 15, 15, 15),
+        type: BottomNavigationBarType.fixed,
+        items: [
+          bottomNavigationBarItem(0, 'Home', Icons.home_outlined, Icons.home),
+          bottomNavigationBarItem(
+              1, 'Shorts', Icons.app_shortcut_outlined, Icons.app_shortcut),
+          bottomNavigationBarItem(
+              2, 'Create', Icons.add_circle_outline, Icons.add_circle),
+          bottomNavigationBarItem(3, 'Subscriptions',
+              Icons.subscriptions_outlined, Icons.subscriptions),
+          bottomNavigationBarItem(
+              4, 'Library', Icons.video_library_outlined, Icons.video_library),
+        ],
+        onTap: (index) => onSelectTab(index),
+        currentIndex: currentTab,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white,
+      ),
+    );
+  }
+
+  BottomNavigationBarItem bottomNavigationBarItem(
+      int tabItem, String label, IconData icon, IconData activeIcon) {
+    return BottomNavigationBarItem(
+      activeIcon: Icon(activeIcon),
+      icon: Icon(icon),
+      label: label,
+    );
+  }
+}
+
+class TabNavigator extends StatelessWidget {
+  const TabNavigator(
+      {super.key,
+      required this.navigatorKey,
+      required this.tabItem,
+      required this.mainPage});
+  final GlobalKey<NavigatorState>? navigatorKey;
+  final int tabItem;
+  final Widget mainPage;
+
+  @override
+  Widget build(BuildContext context) {
+    final routeBuilders = routes(context, mainPage);
+    return Navigator(
+      key: navigatorKey,
+      initialRoute: '/',
+      onGenerateRoute: (routeSettings) {
+        return MaterialPageRoute(
+          builder: (context) => routeBuilders[routeSettings.name!]!(context),
+        );
+      },
+    );
+  }
+}
+
+Map<String, WidgetBuilder> routes(BuildContext context, Widget mainPage) {
+  return {
+    '/': (context) => mainPage,
+    '/notifications': (context) => NotificationPage(),
+    '/search': (context) => SearchPage(),
+  };
 }
 
 class YoutubeTabView extends StatelessWidget {
@@ -189,6 +277,8 @@ AppBar homeAppBar(AppState appState, BuildContext context) {
         icon: const Icon(
           Icons.cast,
         ),
+        splashColor: Colors.transparent,
+        splashRadius: 20,
         onPressed: () {},
       ),
       IconButton(
@@ -196,10 +286,16 @@ AppBar homeAppBar(AppState appState, BuildContext context) {
         icon: const Icon(
           Icons.notifications_outlined,
         ),
+        splashColor: Colors.transparent,
+        splashRadius: 20,
         onPressed: () {
+          var routeBuilders = routes(context, const Text('g'));
+
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => NotificationPage()),
+            MaterialPageRoute(
+              builder: (context) => routeBuilders['/notifications']!(context),
+            ),
           );
         },
       ),
@@ -208,6 +304,8 @@ AppBar homeAppBar(AppState appState, BuildContext context) {
         icon: const Icon(
           Icons.search,
         ),
+        splashColor: Colors.transparent,
+        splashRadius: 20,
         onPressed: () {
           Navigator.push(
             context,
@@ -220,6 +318,8 @@ AppBar homeAppBar(AppState appState, BuildContext context) {
         icon: const Icon(
           Icons.account_circle,
         ),
+        splashColor: Colors.transparent,
+        splashRadius: 20,
         onPressed: () {},
       ),
     ],
@@ -230,8 +330,7 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<AppState>();
-
-    return Scaffold(
+    var mainPage = Scaffold(
       appBar: homeAppBar(appState, context),
       backgroundColor: const Color.fromARGB(255, 15, 15, 15),
       body: const Center(
@@ -240,6 +339,18 @@ class HomePage extends StatelessWidget {
           style: TextStyle(color: Colors.white),
         ),
       ),
+    );
+
+    var routeBuilders = routes(context, mainPage);
+
+    return Navigator(
+      key: GlobalKey(),
+      initialRoute: '/',
+      onGenerateRoute: (routeSettings) {
+        return MaterialPageRoute(
+          builder: (context) => routeBuilders[routeSettings.name!]!(context),
+        );
+      },
     );
   }
 }
@@ -326,6 +437,8 @@ class NotificationPage extends StatelessWidget {
         title: const Text('Notifications'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios),
+          highlightColor: Colors.transparent,
+          splashColor: Colors.transparent,
           onPressed: () {
             Navigator.pop(context);
           },
@@ -336,6 +449,8 @@ class NotificationPage extends StatelessWidget {
             icon: const Icon(
               Icons.cast,
             ),
+            splashColor: Colors.transparent,
+            splashRadius: 20,
             onPressed: () {},
           ),
           IconButton(
@@ -343,6 +458,8 @@ class NotificationPage extends StatelessWidget {
             icon: const Icon(
               Icons.search,
             ),
+            splashColor: Colors.transparent,
+            splashRadius: 20,
             onPressed: () {
               Navigator.push(
                 context,
@@ -369,6 +486,8 @@ class SearchPage extends StatelessWidget {
         title: TextBox(),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios),
+          highlightColor: Colors.transparent,
+          splashColor: Colors.transparent,
           onPressed: () {
             Navigator.pop(context);
           },
@@ -376,9 +495,9 @@ class SearchPage extends StatelessWidget {
         actions: [
           IconButton(
             tooltip: 'Microphone',
-            icon: const Icon(
-              Icons.mic,
-            ),
+            icon: const Icon(Icons.mic),
+            splashColor: Colors.transparent,
+            splashRadius: 20,
             onPressed: () {},
           ),
         ],
@@ -407,7 +526,7 @@ class TextBox extends StatelessWidget {
               style: BorderStyle.none,
             ),
           ),
-          hintText: 'Search',
+          hintText: 'Search Youtube',
           hintStyle: const TextStyle(color: Colors.white),
           filled: true,
           fillColor: const Color.fromARGB(255, 50, 50, 50),
