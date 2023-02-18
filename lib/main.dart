@@ -1,10 +1,26 @@
+// ignore_for_file: avoid_print
+
+import 'dart:convert';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+WebSocketChannel ws =
+    WebSocketChannel.connect(Uri.parse('ws://mc-server:5277'));
+Function wsCallback = () {};
+
 void main() {
+  ws.stream.listen((message) {
+    wsCallback(jsonDecode(message));
+  });
+
   runApp(const MyApp());
+}
+
+void webSocketCall(String req, String arg, Function callback) {
+  ws.sink.add('{ "req": "$req", "arg": "$arg" }');
+  wsCallback = callback;
 }
 
 class MyApp extends StatelessWidget {
@@ -65,6 +81,15 @@ class YoutubeBaseAppState extends State<YoutubeBaseApp> {
     }
   }
 
+  void showModel(Widget content) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) {
+        return content;
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -85,11 +110,11 @@ class YoutubeBaseAppState extends State<YoutubeBaseApp> {
       },
       child: Scaffold(
         body: Stack(children: <Widget>[
-          offstageTabNavigator(0, HomePage()),
-          offstageTabNavigator(1, ShortsPage()),
-          offstageTabNavigator(2, CreatePage()),
-          offstageTabNavigator(3, SubscriptionsPage()),
-          offstageTabNavigator(4, LibraryPage()),
+          offstageTabNavigator(0, HomePage(showModel: showModel)),
+          offstageTabNavigator(1, ShortsPage(showModel: showModel)),
+          offstageTabNavigator(2, CreatePage(showModel: showModel)),
+          offstageTabNavigator(3, SubscriptionsPage(showModel: showModel)),
+          offstageTabNavigator(4, LibraryPage(showModel: showModel)),
         ]),
         bottomNavigationBar: BottomNavigation(
           currentTab: activeTab,
@@ -109,35 +134,6 @@ class YoutubeBaseAppState extends State<YoutubeBaseApp> {
       ),
     );
   }
-
-  // Scaffold(
-  //   body: Container(
-  //     decoration: const BoxDecoration(
-  //       border: Border(
-  //         bottom:
-  //             BorderSide(width: 1.0, color: Color.fromARGB(255, 50, 50, 50)),
-  //       ),
-  //     ),
-  //     child: YoutubeTabView(
-  //       // Adding [UniqueKey] to make sure the widget rebuilds when transitioning.
-  //       key: UniqueKey(),
-  //       item: activeTab,
-  //     ),
-  //   ),
-  //   bottomNavigationBar: BottomNavigationBar(
-  //     showUnselectedLabels: true,
-  //     items: bottomNavigationBarItems,
-  //     currentIndex: activeTab,
-  //     type: BottomNavigationBarType.fixed,
-  //     onTap: (index) {
-  //       setState(() {
-  //         activeTab = index;
-  //       });
-  //     },
-  //     selectedItemColor: Colors.white,
-  //     unselectedItemColor: Colors.white,
-  //     backgroundColor: const Color.fromARGB(255, 15, 15, 15),
-  //   );
 }
 
 class BottomNavigation extends StatelessWidget {
@@ -197,66 +193,19 @@ class TabNavigator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final routeBuilders = routes(context, mainPage);
     return Navigator(
       key: navigatorKey,
       initialRoute: '/',
       onGenerateRoute: (routeSettings) {
         return MaterialPageRoute(
-          builder: (context) => routeBuilders[routeSettings.name!]!(context),
+          builder: (context) => mainPage,
         );
       },
     );
   }
 }
 
-Map<String, WidgetBuilder> routes(BuildContext context, Widget mainPage) {
-  return {
-    '/': (context) => mainPage,
-    '/notifications': (context) => NotificationPage(),
-    '/search': (context) => SearchPage(),
-  };
-}
-
-class YoutubeTabView extends StatelessWidget {
-  const YoutubeTabView({
-    Key? key,
-    required this.item,
-  }) : super(key: key);
-
-  final int item;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget page;
-    switch (item) {
-      case 0:
-        page = HomePage();
-        break;
-      case 1:
-        page = ShortsPage();
-        break;
-      case 2:
-        page = CreatePage();
-        break;
-      case 3:
-        page = SubscriptionsPage();
-        break;
-      case 4:
-        page = LibraryPage();
-        break;
-      default:
-        throw UnimplementedError('no widget for $item');
-    }
-
-    return Container(
-      color: const Color.fromARGB(255, 15, 15, 15),
-      child: page,
-    );
-  }
-}
-
-AppBar homeAppBar(AppState appState, BuildContext context) {
+AppBar homeAppBar(AppState appState, BuildContext context, Function showModel) {
   return AppBar(
     backgroundColor: const Color.fromARGB(255, 15, 15, 15),
     shadowColor: Colors.transparent,
@@ -280,7 +229,9 @@ AppBar homeAppBar(AppState appState, BuildContext context) {
         ),
         splashColor: Colors.transparent,
         splashRadius: 20,
-        onPressed: () {},
+        onPressed: () {
+          showModel(CastModelContent());
+        },
       ),
       IconButton(
         tooltip: 'Notifications',
@@ -290,12 +241,22 @@ AppBar homeAppBar(AppState appState, BuildContext context) {
         splashColor: Colors.transparent,
         splashRadius: 20,
         onPressed: () {
-          var routeBuilders = routes(context, const Text('g'));
-
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => routeBuilders['/notifications']!(context),
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  NotificationPage(),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                const begin = Offset(1.0, 0.0);
+                const end = Offset.zero;
+                final tween = Tween(begin: begin, end: end);
+                final offsetAnimation = animation.drive(tween);
+                return SlideTransition(
+                  position: offsetAnimation,
+                  child: child,
+                );
+              },
             ),
           );
         },
@@ -310,7 +271,7 @@ AppBar homeAppBar(AppState appState, BuildContext context) {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => SearchPage()),
+            FadeRoute(page: SearchPage()),
           );
         },
       ),
@@ -321,18 +282,26 @@ AppBar homeAppBar(AppState appState, BuildContext context) {
         ),
         splashColor: Colors.transparent,
         splashRadius: 20,
-        onPressed: () {},
+        onPressed: () {
+          Navigator.push(
+            context,
+            SlideUpRoute(page: AccountPage()),
+          );
+        },
       ),
     ],
   );
 }
 
 class HomePage extends StatelessWidget {
+  const HomePage({super.key, required this.showModel});
+  final Function showModel;
+
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<AppState>();
     var mainPage = Scaffold(
-      appBar: homeAppBar(appState, context),
+      appBar: homeAppBar(appState, context, showModel),
       backgroundColor: const Color.fromARGB(255, 15, 15, 15),
       body: const Center(
         child: Text(
@@ -342,14 +311,12 @@ class HomePage extends StatelessWidget {
       ),
     );
 
-    var routeBuilders = routes(context, mainPage);
-
     return Navigator(
       key: GlobalKey(),
       initialRoute: '/',
       onGenerateRoute: (routeSettings) {
         return MaterialPageRoute(
-          builder: (context) => routeBuilders[routeSettings.name!]!(context),
+          builder: (context) => mainPage,
         );
       },
     );
@@ -357,12 +324,15 @@ class HomePage extends StatelessWidget {
 }
 
 class ShortsPage extends StatelessWidget {
+  const ShortsPage({super.key, required this.showModel});
+  final Function showModel;
+
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<AppState>();
 
     return Scaffold(
-      appBar: homeAppBar(appState, context),
+      appBar: homeAppBar(appState, context, showModel),
       backgroundColor: const Color.fromARGB(255, 15, 15, 15),
       body: const Center(
         child: Text(
@@ -375,12 +345,15 @@ class ShortsPage extends StatelessWidget {
 }
 
 class CreatePage extends StatelessWidget {
+  const CreatePage({super.key, required this.showModel});
+  final Function showModel;
+
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<AppState>();
 
     return Scaffold(
-      appBar: homeAppBar(appState, context),
+      appBar: homeAppBar(appState, context, showModel),
       backgroundColor: const Color.fromARGB(255, 15, 15, 15),
       body: const Center(
         child: Text(
@@ -393,12 +366,15 @@ class CreatePage extends StatelessWidget {
 }
 
 class SubscriptionsPage extends StatelessWidget {
+  const SubscriptionsPage({super.key, required this.showModel});
+  final Function showModel;
+
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<AppState>();
 
     return Scaffold(
-      appBar: homeAppBar(appState, context),
+      appBar: homeAppBar(appState, context, showModel),
       backgroundColor: const Color.fromARGB(255, 15, 15, 15),
       body: const Center(
         child: Text(
@@ -411,17 +387,56 @@ class SubscriptionsPage extends StatelessWidget {
 }
 
 class LibraryPage extends StatelessWidget {
+  const LibraryPage({super.key, required this.showModel});
+  final Function showModel;
+
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<AppState>();
 
     return Scaffold(
-      appBar: homeAppBar(appState, context),
+      appBar: homeAppBar(appState, context, showModel),
       backgroundColor: const Color.fromARGB(255, 15, 15, 15),
       body: const Center(
         child: Text(
           'Library Page',
           style: TextStyle(color: Colors.white),
+        ),
+      ),
+    );
+  }
+}
+
+class CastModelContent extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 1000,
+      child: Scaffold(
+        backgroundColor: const Color.fromARGB(255, 40, 40, 40),
+        body: Column(
+          children: [
+            const SizedBox(
+              height: 50,
+              child: Text(
+                'Connect to a device:',
+                style: TextStyle(color: Colors.white, fontSize: 20),
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: 5,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(
+                      'Device: ${index + 1}?',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -569,6 +584,12 @@ class TextBox extends StatelessWidget {
       alignment: Alignment.centerLeft,
       color: Colors.transparent,
       child: TextField(
+        onChanged: (value) {
+          webSocketCall('get_search', value, (msg) {
+            print(msg);
+          });
+        },
+        autofocus: true,
         cursorColor: Colors.white,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
@@ -589,4 +610,108 @@ class TextBox extends StatelessWidget {
       ),
     );
   }
+}
+
+class AccountPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color.fromARGB(255, 15, 15, 15),
+        shadowColor: Colors.transparent,
+        title: const Text('Account'),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          splashRadius: 20,
+          splashColor: Colors.transparent,
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
+      body: Scaffold(
+        backgroundColor: const Color.fromARGB(255, 15, 15, 15),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Padding(
+                padding: EdgeInsets.only(bottom: 10),
+                child: Text(
+                  'Account And Settings Unavailable',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              Text(
+                'Account and settings aren\'t currently coded',
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class FadeRoute extends PageRouteBuilder {
+  final Widget page;
+
+  @override
+  Duration get transitionDuration => const Duration(milliseconds: 150);
+
+  FadeRoute({required this.page})
+      : super(
+          pageBuilder: (
+            BuildContext context,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+          ) =>
+              page,
+          transitionsBuilder: (
+            BuildContext context,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+            Widget child,
+          ) =>
+              FadeTransition(
+            opacity: animation,
+            child: child,
+          ),
+        );
+}
+
+class SlideUpRoute extends PageRouteBuilder {
+  final Widget page;
+
+  @override
+  Duration get transitionDuration => const Duration(milliseconds: 300);
+
+  SlideUpRoute({required this.page})
+      : super(
+          pageBuilder: (
+            BuildContext context,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+          ) =>
+              page,
+          transitionsBuilder: (
+            BuildContext context,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+            Widget child,
+          ) =>
+              SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 1),
+              end: Offset.zero,
+            ).animate(animation),
+            child: child,
+          ),
+        );
 }
