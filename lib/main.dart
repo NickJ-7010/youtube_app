@@ -537,7 +537,7 @@ class SearchPage extends StatefulWidget {
 }
 
 class SearchPageState extends State<SearchPage>
-    with SingleTickerProviderStateMixin, RestorationMixin {
+    with TickerProviderStateMixin, RestorationMixin {
   bool isSearching = true;
   bool hasResults = false;
   bool hasBuilt = false;
@@ -564,7 +564,7 @@ class SearchPageState extends State<SearchPage>
     super.initState();
     tabController = TabController(
       initialIndex: appState.musicUI ? 1 : 0,
-      length: isSearching ? 2 : 3,
+      length: 2,
       vsync: this,
     );
     tabController.addListener(() {
@@ -591,8 +591,15 @@ class SearchPageState extends State<SearchPage>
   }
 
   void search(String text) {
-    isSearching = false;
-    hasResults = true;
+    setState(() {
+      isSearching = false;
+      hasResults = true;
+    });
+    tabController = TabController(
+      initialIndex: tabController.index,
+      length: 3,
+      vsync: this,
+    );
     switch (tabController.index) {
       case 0:
         webSocketCall('search', text, (msg) => {print(jsonEncode(msg))});
@@ -637,6 +644,16 @@ class SearchPageState extends State<SearchPage>
                       suggestions = msg;
                     });
                   });
+                },
+                onTap: () {
+                  setState(() {
+                    isSearching = true;
+                  });
+                  tabController = TabController(
+                    initialIndex: tabController.index,
+                    length: 2,
+                    vsync: this,
+                  );
                 },
                 onSubmitted: search,
                 autofocus: true,
