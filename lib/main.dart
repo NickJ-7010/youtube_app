@@ -271,7 +271,9 @@ AppBar homeAppBar(AppState appState, BuildContext context, Function showModel) {
         onPressed: () {
           Navigator.push(
             context,
-            FadeRoute(page: SearchPage()),
+            FadeRoute(
+              page: SearchPage(Provider.of<AppState>(context, listen: false)),
+            ),
           );
         },
       ),
@@ -479,7 +481,11 @@ class NotificationPage extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => SearchPage()),
+                MaterialPageRoute(
+                  builder: (context) => SearchPage(
+                    Provider.of<AppState>(context, listen: false),
+                  ),
+                ),
               );
             },
           ),
@@ -521,14 +527,140 @@ class NotificationPage extends StatelessWidget {
   }
 }
 
-class SearchPage extends StatelessWidget {
+class SearchPage extends StatefulWidget {
+  const SearchPage(this.appState);
+  final AppState appState;
+
   @override
-  Widget build(BuildContext context) {
+  // ignore: no_logic_in_create_state
+  SearchPageState createState() => SearchPageState(appState);
+}
+
+class SearchPageState extends State<SearchPage>
+    with SingleTickerProviderStateMixin, RestorationMixin {
+  bool isSearching = true;
+  bool hasResults = false;
+  bool hasBuilt = false;
+  List suggestions = [];
+  TextEditingController controller = TextEditingController();
+  late TabController tabController;
+
+  final RestorableInt tabIndex = RestorableInt(0);
+
+  SearchPageState(this.appState);
+  final AppState appState;
+
+  @override
+  String get restorationId => 'search_page';
+
+  @override
+  void restoreState(RestorationBucket? oldBucket, bool initialRestore) {
+    registerForRestoration(tabIndex, 'tab_index');
+    tabController.index = tabIndex.value;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    tabController = TabController(
+      initialIndex: appState.musicUI ? 1 : 0,
+      length: isSearching ? 2 : 3,
+      vsync: this,
+    );
+    tabController.addListener(() {
+      setState(() {
+        tabIndex.value = tabController.index;
+        if (tabController.index != 2) {
+          if (hasBuilt) {
+            appState.setMusicUI(tabController.index == 0 ? false : true);
+          } else {
+            tabController.index = 1;
+          }
+        }
+        if (!isSearching) search(controller.text);
+        hasBuilt = true;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    tabController.dispose();
+    tabIndex.dispose();
+    super.dispose();
+  }
+
+  void search(String text) {
+    isSearching = false;
+    hasResults = true;
+    switch (tabController.index) {
+      case 0:
+        webSocketCall('search', text, (msg) => {print(jsonEncode(msg))});
+        break;
+      case 1:
+        webSocketCall('music_search', text, (msg) => {print(jsonEncode(msg))});
+        break;
+      case 2:
+        print('unimplemented');
+        break;
+    }
+  }
+
+  @override
+  // ignore: avoid_renaming_method_parameters
+  Widget build(BuildContext buildContext) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 15, 15, 15),
         shadowColor: Colors.transparent,
-        title: TextBox(),
+        bottom: TabBar(
+          controller: tabController,
+          isScrollable: false,
+          indicatorColor: Colors.white,
+          splashFactory: NoSplash.splashFactory,
+          tabs: [
+            const Tab(text: "YOUTUBE"),
+            const Tab(text: "YT MUSIC"),
+            if (!isSearching) const Tab(text: 'LIBRARY'),
+          ],
+        ),
+        title: Container(
+          alignment: Alignment.centerLeft,
+          color: Colors.transparent,
+          child: Column(
+            children: [
+              TextField(
+                controller: controller,
+                onChanged: (value) {
+                  webSocketCall('get_search', value, (msg) {
+                    setState(() {
+                      suggestions = msg;
+                    });
+                  });
+                },
+                onSubmitted: search,
+                autofocus: true,
+                cursorColor: const Color.fromARGB(255, 14, 122, 254),
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(1000.0),
+                    borderSide: const BorderSide(
+                      width: 0,
+                      style: BorderStyle.none,
+                    ),
+                  ),
+                  hintText: 'Search Youtube',
+                  hintStyle: const TextStyle(color: Colors.white),
+                  filled: true,
+                  fillColor: const Color.fromARGB(255, 50, 50, 50),
+                  isDense: true,
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+              ),
+            ],
+          ),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios),
           highlightColor: Colors.transparent,
@@ -549,64 +681,44 @@ class SearchPage extends StatelessWidget {
       ),
       body: Scaffold(
         backgroundColor: const Color.fromARGB(255, 15, 15, 15),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Padding(
-                padding: EdgeInsets.only(bottom: 10),
-                child: Text(
-                  'Searching Unavailable',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              Text(
-                'Search menus aren\'t currently coded',
-                style: TextStyle(
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class TextBox extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      alignment: Alignment.centerLeft,
-      color: Colors.transparent,
-      child: TextField(
-        onChanged: (value) {
-          webSocketCall('get_search', value, (msg) {
-            print(msg);
-          });
-        },
-        autofocus: true,
-        cursorColor: Colors.white,
-        style: const TextStyle(color: Colors.white),
-        decoration: InputDecoration(
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(1000.0),
-            borderSide: const BorderSide(
-              width: 0,
-              style: BorderStyle.none,
-            ),
-          ),
-          hintText: 'Search Youtube',
-          hintStyle: const TextStyle(color: Colors.white),
-          filled: true,
-          fillColor: const Color.fromARGB(255, 50, 50, 50),
-          isDense: true,
-          contentPadding: const EdgeInsets.all(12),
-        ),
+        body: isSearching || !hasResults
+            ? ListView(
+                children: [
+                  for (var item in suggestions)
+                    GestureDetector(
+                      onTap: () {
+                        controller.text = item['suggestion']['text'];
+                        search(controller.text);
+                      },
+                      child: ListTile(
+                        leading: const Icon(Icons.search),
+                        iconColor: Colors.white,
+                        title: RichText(
+                          text: TextSpan(
+                            children: [
+                              for (var row in item['suggestion']['runs'])
+                                TextSpan(
+                                  text: row['text'],
+                                  style: TextStyle(
+                                    fontWeight: row['bold']
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    fontStyle: row['italics']
+                                        ? FontStyle.italic
+                                        : FontStyle.normal,
+                                    decoration: row['strikethrough']
+                                        ? TextDecoration.lineThrough
+                                        : TextDecoration.none,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              )
+            : const Text("Helo", style: TextStyle(color: Colors.white)),
       ),
     );
   }
