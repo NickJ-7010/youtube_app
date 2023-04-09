@@ -576,20 +576,22 @@ class SearchPageState extends State<SearchPage>
   }
 
   void createTabController() {
-    tabController = TabController(
-      initialIndex: appState.musicUI ? 1 : 0,
-      length: isSearching ? 2 : 3,
-      vsync: this,
-    );
-    tabController.addListener(() {
-      if (controller.text.isNotEmpty) {
-        setState(() {
+    setState(() {
+      tabController = TabController(
+        initialIndex: isSearching
+            ? appState.musicUI
+                ? 1
+                : 0
+            : tabController.index,
+        length: isSearching ? 2 : 3,
+        vsync: this,
+      );
+      tabController.addListener(() {
+        if (controller.text.isNotEmpty) {
           tabIndex.value = tabController.index;
           if (tabController.index != 2) {
             if (hasBuilt) {
               appState.setMusicUI(tabController.index == 0 ? false : true);
-            } else {
-              tabController.index = 1;
             }
           }
           if (isSearching) {
@@ -603,20 +605,20 @@ class SearchPageState extends State<SearchPage>
           } else {
             search(controller.text);
           }
-        });
-      } else {
-        if (hasBuilt) {
-          appState.setMusicUI(tabController.index == 0 ? false : true);
         } else {
-          //update without causing build while building error
+          if (hasBuilt) {
+            appState.setMusicUI(tabController.index == 0 ? false : true);
+          } else {
+            tabController.index = 1;
+          }
+          tabIndex.value = tabController.index;
         }
-      }
-      hasBuilt = true;
+        hasBuilt = true;
+      });
     });
   }
 
   void search(String text) {
-    print(tabController.index);
     setState(() {
       isSearching = false;
       hasResults = true;
@@ -638,6 +640,26 @@ class SearchPageState extends State<SearchPage>
   @override
   // ignore: avoid_renaming_method_parameters
   Widget build(BuildContext buildContext) {
+    Widget searchContent;
+    switch (tabController.index) {
+      case 0:
+        searchContent = const Text("Youtube Search Results",
+            style: TextStyle(color: Colors.white));
+        break;
+      case 1:
+        searchContent = const Text("Youtube Music Search Results",
+            style: TextStyle(color: Colors.white));
+        break;
+      case 2:
+        searchContent = const Text("Downloaded Library Search Results",
+            style: TextStyle(color: Colors.white));
+        break;
+      default:
+        searchContent =
+            const Text("Error", style: TextStyle(color: Colors.white));
+        break;
+    }
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 15, 15, 15),
@@ -661,13 +683,17 @@ class SearchPageState extends State<SearchPage>
               TextField(
                 controller: controller,
                 onChanged: (value) {
-                  webSocketCall(
-                      appState.musicUI ? 'get_music_search' : 'get_search',
-                      value, (msg) {
-                    setState(() {
-                      suggestions = msg;
+                  if (value.isNotEmpty) {
+                    webSocketCall(
+                        appState.musicUI ? 'get_music_search' : 'get_search',
+                        value, (msg) {
+                      setState(() {
+                        suggestions = msg;
+                      });
                     });
-                  });
+                  } else {
+                    suggestions = [];
+                  }
                 },
                 onTap: () {
                   setState(() {
@@ -780,7 +806,7 @@ class SearchPageState extends State<SearchPage>
                           ),
                 ],
               )
-            : const Text("Helo", style: TextStyle(color: Colors.white)),
+            : searchContent,
       ),
     );
   }
