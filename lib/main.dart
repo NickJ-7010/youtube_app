@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_print
 
+import 'dart:math';
 import 'dart:convert';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -20,7 +21,9 @@ void main() {
 
 void webSocketCall(String req, String arg, Function callback) {
   ws.sink.add('{ "req": "$req", "arg": "$arg" }');
-  wsCallback = callback;
+  wsCallback = (res) {
+    if (res['req'] == req) callback(res['body']);
+  };
 }
 
 class MyApp extends StatelessWidget {
@@ -562,25 +565,7 @@ class SearchPageState extends State<SearchPage>
   @override
   void initState() {
     super.initState();
-    tabController = TabController(
-      initialIndex: appState.musicUI ? 1 : 0,
-      length: 2,
-      vsync: this,
-    );
-    tabController.addListener(() {
-      setState(() {
-        tabIndex.value = tabController.index;
-        if (tabController.index != 2) {
-          if (hasBuilt) {
-            appState.setMusicUI(tabController.index == 0 ? false : true);
-          } else {
-            tabController.index = 1;
-          }
-        }
-        if (!isSearching) search(controller.text);
-        hasBuilt = true;
-      });
-    });
+    createTabController();
   }
 
   @override
@@ -590,16 +575,53 @@ class SearchPageState extends State<SearchPage>
     super.dispose();
   }
 
+  void createTabController() {
+    tabController = TabController(
+      initialIndex: appState.musicUI ? 1 : 0,
+      length: isSearching ? 2 : 3,
+      vsync: this,
+    );
+    tabController.addListener(() {
+      if (controller.text.isNotEmpty) {
+        setState(() {
+          tabIndex.value = tabController.index;
+          if (tabController.index != 2) {
+            if (hasBuilt) {
+              appState.setMusicUI(tabController.index == 0 ? false : true);
+            } else {
+              tabController.index = 1;
+            }
+          }
+          if (isSearching) {
+            webSocketCall(
+                tabController.index == 0 ? 'get_search' : 'get_music_search',
+                controller.text, (msg) {
+              setState(() {
+                suggestions = msg;
+              });
+            });
+          } else {
+            search(controller.text);
+          }
+        });
+      } else {
+        if (hasBuilt) {
+          appState.setMusicUI(tabController.index == 0 ? false : true);
+        } else {
+          //update without causing build while building error
+        }
+      }
+      hasBuilt = true;
+    });
+  }
+
   void search(String text) {
+    print(tabController.index);
     setState(() {
       isSearching = false;
       hasResults = true;
+      createTabController();
     });
-    tabController = TabController(
-      initialIndex: tabController.index,
-      length: 3,
-      vsync: this,
-    );
     switch (tabController.index) {
       case 0:
         webSocketCall('search', text, (msg) => {print(jsonEncode(msg))});
@@ -639,7 +661,9 @@ class SearchPageState extends State<SearchPage>
               TextField(
                 controller: controller,
                 onChanged: (value) {
-                  webSocketCall('get_search', value, (msg) {
+                  webSocketCall(
+                      appState.musicUI ? 'get_music_search' : 'get_search',
+                      value, (msg) {
                     setState(() {
                       suggestions = msg;
                     });
@@ -648,12 +672,8 @@ class SearchPageState extends State<SearchPage>
                 onTap: () {
                   setState(() {
                     isSearching = true;
+                    createTabController();
                   });
-                  tabController = TabController(
-                    initialIndex: tabController.index,
-                    length: 2,
-                    vsync: this,
-                  );
                 },
                 onSubmitted: search,
                 autofocus: true,
@@ -702,37 +722,62 @@ class SearchPageState extends State<SearchPage>
             ? ListView(
                 children: [
                   for (var item in suggestions)
-                    GestureDetector(
-                      onTap: () {
-                        controller.text = item['suggestion']['text'];
-                        search(controller.text);
-                      },
-                      child: ListTile(
-                        leading: const Icon(Icons.search),
-                        iconColor: Colors.white,
-                        title: RichText(
-                          text: TextSpan(
-                            children: [
-                              for (var row in item['suggestion']['runs'])
-                                TextSpan(
-                                  text: row['text'],
-                                  style: TextStyle(
-                                    fontWeight: row['bold']
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                    fontStyle: row['italics']
-                                        ? FontStyle.italic
-                                        : FontStyle.normal,
-                                    decoration: row['strikethrough']
-                                        ? TextDecoration.lineThrough
-                                        : TextDecoration.none,
-                                  ),
+                    item is String
+                        ? GestureDetector(
+                            onTap: () {
+                              controller.text = item;
+                              search(controller.text);
+                            },
+                            child: ListTile(
+                              leading: const Icon(Icons.search),
+                              iconColor: Colors.white,
+                              title: RichText(
+                                text: TextSpan(
+                                  children: [
+                                    TextSpan(
+                                        text: item.toString().substring(
+                                            0,
+                                            min(controller.text.length,
+                                                item.length)),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold)),
+                                    TextSpan(
+                                      text: item.toString().substring(
+                                            min(
+                                              controller.text.length,
+                                              item.length,
+                                            ),
+                                          ),
+                                    )
+                                  ],
                                 ),
-                            ],
+                              ),
+                            ),
+                          )
+                        : GestureDetector(
+                            onTap: () {
+                              controller.text = item['suggestion']['text'];
+                              search(controller.text);
+                            },
+                            child: ListTile(
+                              leading: const Icon(Icons.search),
+                              iconColor: Colors.white,
+                              title: RichText(
+                                text: TextSpan(
+                                  children: [
+                                    for (var row in item['suggestion']['runs'])
+                                      TextSpan(
+                                        text: row['text'],
+                                        style: TextStyle(
+                                            fontWeight: row['bold']
+                                                ? FontWeight.bold
+                                                : FontWeight.normal),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    ),
                 ],
               )
             : const Text("Helo", style: TextStyle(color: Colors.white)),
