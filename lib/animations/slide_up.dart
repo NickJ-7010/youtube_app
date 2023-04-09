@@ -1,0 +1,31 @@
+import 'package:flutter/material.dart';
+
+class SlideUpRoute extends PageRouteBuilder {
+  final Widget page;
+
+  @override
+  Duration get transitionDuration => const Duration(milliseconds: 300);
+
+  SlideUpRoute({required this.page})
+      : super(
+          pageBuilder: (
+            BuildContext context,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+          ) =>
+              page,
+          transitionsBuilder: (
+            BuildContext context,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+            Widget child,
+          ) =>
+              SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 1),
+              end: Offset.zero,
+            ).animate(animation),
+            child: child,
+          ),
+        );
+}
