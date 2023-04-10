@@ -7,3 +7,4 @@ export 'pages/cast.dart';
 export 'pages/notification.dart';
 export 'pages/search.dart';
 export 'pages/account.dart';
+export 'pages/sign_in.dart';
