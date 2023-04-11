@@ -40,19 +40,7 @@ class AccountPage extends StatelessWidget {
                 ),
               ),
               const Text(
-                'You need to sign in before you can manage your account and some settings.\n',
-                style: TextStyle(
-                  color: Colors.white,
-                ),
-              ),
-              const Text(
-                'To sign in click the button below labeled "Sign In" and paste in the code that is automatically copied to your clipboard',
-                style: TextStyle(
-                  color: Colors.white,
-                ),
-              ),
-              const Text(
-                'then choose the account you want to sign in with and allow the app to use your google account!',
+                'You need to sign in before you can manage your account and some settings.',
                 style: TextStyle(
                   color: Colors.white,
                 ),
