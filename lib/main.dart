@@ -33,10 +33,15 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => AppState(),
-      child: const MaterialApp(
+      child: MaterialApp(
+        theme: ThemeData(
+          bottomSheetTheme: const BottomSheetThemeData(
+            backgroundColor: Color.fromARGB(255, 15, 15, 15),
+          ),
+        ),
         title: 'Youtube App',
         debugShowCheckedModeBanner: false,
-        home: YoutubeBaseApp(),
+        home: const YoutubeBaseApp(),
       ),
     );
   }
@@ -66,7 +71,9 @@ class YoutubeBaseApp extends StatefulWidget {
 }
 
 class YoutubeBaseAppState extends State<YoutubeBaseApp> {
-  var activeTab = 0;
+  final DraggableScrollableController dragController =
+      DraggableScrollableController();
+  int activeTab = 0;
   final tabItemKeys = {
     0: GlobalKey<NavigatorState>(),
     1: GlobalKey<NavigatorState>(),
@@ -112,13 +119,54 @@ class YoutubeBaseAppState extends State<YoutubeBaseApp> {
         return isFirstRouteInCurrentTab;
       },
       child: Scaffold(
-        body: Stack(children: <Widget>[
-          offstageTabNavigator(0, HomePage(showModel: showModel)),
-          offstageTabNavigator(1, ShortsPage(showModel: showModel)),
-          offstageTabNavigator(2, CreatePage(showModel: showModel)),
-          offstageTabNavigator(3, SubscriptionsPage(showModel: showModel)),
-          offstageTabNavigator(4, LibraryPage(showModel: showModel)),
-        ]),
+        body: Stack(
+          children: <Widget>[
+            offstageTabNavigator(0, HomePage(showModel: showModel)),
+            offstageTabNavigator(1, ShortsPage(showModel: showModel)),
+            offstageTabNavigator(2, CreatePage(showModel: showModel)),
+            offstageTabNavigator(3, SubscriptionsPage(showModel: showModel)),
+            offstageTabNavigator(4, LibraryPage(showModel: showModel)),
+            // Positioned(
+            //   bottom: 0,
+            //   child: CustomBottomSheet(
+            //     maxHeight: MediaQuery.of(context).size.height - 165,
+            //     headerHeight: 50,
+            //     header: Container(
+            //       alignment: Alignment.center,
+            //       decoration: const BoxDecoration(
+            //         color: Colors.red,
+            //         borderRadius:
+            //             BorderRadius.vertical(top: Radius.circular(22.5)),
+            //       ),
+            //       child: Column(
+            //         crossAxisAlignment: CrossAxisAlignment.center,
+            //         children: <Widget>[
+            //           Container(
+            //             margin: const EdgeInsets.only(top: 6.0, bottom: 8.0),
+            //             width: 30.0, // 10.w
+            //             height: 6.5, // 0.8.h
+            //             decoration: BoxDecoration(
+            //                 color: const Color.fromARGB(50, 255, 255, 255),
+            //                 borderRadius: BorderRadius.circular(50)),
+            //           ),
+            //           Text("Drag the header to see bottom sheet"),
+            //         ],
+            //       ),
+            //     ),
+            //     children: List.generate(
+            //       30,
+            //       (int index) => Container(
+            //         width: double.infinity,
+            //         height: 40.0,
+            //         alignment: Alignment.center,
+            //         color: Colors.red,
+            //         child: Text("list item $index"),
+            //       ),
+            //     ),
+            //   ),
+            // ),
+          ],
+        ),
         bottomNavigationBar: BottomNavigation(
           currentTab: activeTab,
           onSelectTab: setActiveTab,
@@ -153,7 +201,7 @@ class BottomNavigation extends StatelessWidget {
         highlightColor: Colors.transparent,
       ),
       child: BottomNavigationBar(
-        backgroundColor: const Color.fromARGB(255, 15, 15, 15),
+        backgroundColor: const Color.fromARGB(255, 25, 25, 25),
         type: BottomNavigationBarType.fixed,
         items: [
           bottomNavigationBarItem(0, 'Home', Icons.home_outlined, Icons.home),
@@ -204,6 +252,257 @@ class TabNavigator extends StatelessWidget {
           builder: (context) => mainPage,
         );
       },
+    );
+  }
+}
+
+class CustomBottomSheet extends StatefulWidget {
+  CustomBottomSheet({
+    Key? key,
+    this.scrollController,
+    required this.maxHeight,
+    this.headerHeight = 0.0,
+    this.minHeight = 0.0,
+    this.header,
+    this.body,
+    this.bgColor = Colors.white,
+    this.borderRadius,
+    this.boxShadow,
+    this.hasBottomViewPadding = true,
+    this.children,
+  }) : super(key: key) {
+    if (body == null && children == null) {
+      assert(
+          body != null || children != null, "either body or children required");
+    }
+    if (body != null && children != null) {
+      assert(body != null || children != null,
+          "can't have both body and children");
+    }
+    assert(headerHeight >= 0.0, "header height cannot be less than 0");
+    if (header != null) {
+      assert(headerHeight > 0.0, "header height required if header is present");
+    }
+  }
+
+  final ScrollController? scrollController;
+  final double maxHeight;
+  final double headerHeight;
+
+  /// if you want the bottom sheet to be shown (not including header part)
+  final double minHeight;
+  final Widget? header;
+  final Widget? body;
+  final List<Widget>? children;
+  final Color bgColor;
+  final BorderRadiusGeometry? borderRadius;
+  final List<BoxShadow>? boxShadow;
+
+  /// for safe area - bottom: true effect
+  final bool hasBottomViewPadding;
+
+  @override
+  State<CustomBottomSheet> createState() => _CustomBottomSheetState();
+}
+
+class _CustomBottomSheetState extends State<CustomBottomSheet>
+    with SingleTickerProviderStateMixin<CustomBottomSheet> {
+  final ScrollController _scrollController = ScrollController();
+  Animation? _animation;
+  AnimationController? _animationController;
+
+  double _bodyHeight = 0.0;
+  bool _isAtTop = false;
+  double _initPosition = 0.0;
+
+  void _saveInitPosition(DragStartDetails d) =>
+      _initPosition = d.globalPosition.dy;
+
+  /// scroll based on position
+  Future<void> _onDragEndPosition(DragEndDetails d) async {
+    _animationController!.duration = const Duration(milliseconds: 300);
+    if (_bodyHeight >= widget.maxHeight * 1 / 3) {
+      _animation = Tween<double>(begin: _bodyHeight, end: widget.maxHeight)
+          .animate(_animationController!);
+      _animationController?.reset();
+      await _animationController?.forward();
+    }
+    if (_bodyHeight < widget.maxHeight * 1 / 3) {
+      _animation = Tween<double>(begin: _bodyHeight, end: 0.0)
+          .animate(_animationController!);
+      _animationController?.reset();
+      await _animationController?.forward();
+    }
+  }
+
+  Future<void> _onDragEndVelocitySimple(DragEndDetails d) async {
+    double end;
+    if (d.primaryVelocity! < 0.0) {
+      end = widget.maxHeight;
+    } else {
+      end = 0.0;
+    }
+    _animation = Tween<double>(begin: _bodyHeight, end: end)
+        .animate(_animationController!);
+    _animationController?.reset();
+    await _animationController?.forward();
+  }
+
+  void _followDragWithBodyAsList(DragUpdateDetails d) {
+    final double movedAmount = _initPosition - d.globalPosition.dy;
+
+    /// negative = drag down, positive = drag up
+    final double scrollTo = _scrollController.offset + movedAmount;
+
+    /// needed for scrolling the inner list
+
+    /// the list inside has not been touched yet
+    if (_scrollController.position.extentBefore == 0.0) {
+      if (_isAtTop && d.primaryDelta!.isNegative) {
+        /// bottom sheet has been scrolled to the top and the user is scrolling more upwards
+        _scrollController.jumpTo(scrollTo);
+      } else {
+        /// follow drag gesture
+        double newHeight = _bodyHeight + movedAmount;
+        if (newHeight < 0.0) newHeight = 0.0;
+
+        /// makes sure the bodyHeight does not fall under 0.0
+        if (newHeight > widget.maxHeight) {
+          newHeight = widget.maxHeight;
+        }
+
+        /// makes sure the bodyHeight does not go above max height
+        _bodyHeight = newHeight;
+        setState(() {});
+        _isAtTop = false;
+      }
+    } else {
+      /// user is scrolling the inner list
+      if (scrollTo > _scrollController.position.maxScrollExtent) return;
+      _scrollController.jumpTo(scrollTo);
+    }
+    _initPosition = d.globalPosition.dy;
+  }
+
+  Future<void> _onDragEndWithBodyAsList(DragEndDetails d) async {
+    if (d.primaryVelocity == null) return;
+
+    if (!_isAtTop) {
+      /// scrolls the bottom sheet container
+      if (d.primaryVelocity == 0) await _onDragEndPosition(d);
+      if (d.primaryVelocity != 0) await _onDragEndVelocitySimple(d);
+    } else {
+      /// scrolls the inner list
+      double animateTo = _scrollController.offset - d.primaryVelocity! / 5;
+
+      if (d.primaryVelocity! > 0.0 && animateTo < 0.0) animateTo = 0.0;
+
+      /// does not overscroll upwards
+      if (d.primaryVelocity! < 0.0 &&
+          animateTo > _scrollController.position.maxScrollExtent) {
+        animateTo = _scrollController.position.maxScrollExtent;
+
+        /// does not overscroll downwards
+      }
+
+      int duration = 1600;
+
+      /// scroll duration for inner parts
+
+      if (animateTo == 0.0 && _scrollController.offset - animateTo < duration) {
+        duration = 600;
+      }
+
+      if (animateTo == _scrollController.offset &&
+          _scrollController.offset - animateTo < duration) {
+        duration = 300;
+      }
+
+      await _scrollController.animateTo(animateTo,
+          duration: Duration(milliseconds: duration),
+          curve: Curves.easeOutCubic);
+    }
+
+    if (_bodyHeight >= widget.maxHeight) {
+      _isAtTop = true;
+    } else {
+      _isAtTop = false;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    )
+      ..addListener(() {
+        _bodyHeight = _animation!.value;
+
+        /// this is for when the bottom sheet was controlled by animation controller
+        setState(() {});
+      })
+      ..addStatusListener((AnimationStatus status) {
+        if (status == AnimationStatus.completed &&
+            _bodyHeight >= widget.maxHeight) _isAtTop = true;
+      });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _animationController?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onVerticalDragStart: _saveInitPosition,
+      onVerticalDragUpdate: _followDragWithBodyAsList,
+      onVerticalDragEnd: _onDragEndWithBodyAsList,
+      child: SingleChildScrollView(
+        child: Container(
+          padding: widget.hasBottomViewPadding
+              ? EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewPadding.bottom)
+              : null,
+          width: MediaQuery.of(context).size.width,
+          constraints: BoxConstraints(
+              maxHeight: widget.maxHeight + widget.headerHeight,
+              minHeight: widget.headerHeight + widget.minHeight),
+          decoration: BoxDecoration(
+            color: widget.bgColor,
+            borderRadius: widget.borderRadius,
+            boxShadow: widget.boxShadow,
+          ),
+          height: widget.headerHeight +
+              _bodyHeight +
+              (widget.hasBottomViewPadding
+                  ? MediaQuery.of(context).viewPadding.bottom
+                  : 0.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Container(
+                height: widget.headerHeight,
+                alignment: Alignment.center,
+                child: widget.header,
+              ),
+              Expanded(
+                child: widget.body ??
+                    ListView.builder(
+                        physics: const NeverScrollableScrollPhysics(),
+                        controller: _scrollController,
+                        padding: const EdgeInsets.only(bottom: 45.0),
+                        itemCount: widget.children!.length,
+                        itemBuilder: (_, int index) => widget.children![index]),
+              )
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

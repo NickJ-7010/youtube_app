@@ -53,11 +53,20 @@ class SignInPageState extends State<SignInPage> {
           body: jsonEncode({
             'client_id': clientId,
             'client_secret': clientSecret,
-            'code': res['user_code'],
+            'code': res['device_code'],
             'grant_type': 'http://oauth.net/grant_type/device/1.0'
           }),
         );
-        print(jsonDecode(request.body));
+        var response = jsonDecode(request.body);
+        if (response['error'] == null) {
+          interval.cancel();
+          response['access_token'];
+          response['refresh_token'];
+          DateTime.now().add(Duration(seconds: response['expires_in']));
+        } else if (response['error'] != 'authorization_pending') {
+          interval.cancel();
+          print('Error: $response');
+        }
       });
       setState(() {
         code = res["user_code"];
